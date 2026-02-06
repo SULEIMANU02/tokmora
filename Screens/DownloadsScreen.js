@@ -12,6 +12,7 @@ import {
 import * as MediaLibrary from "expo-media-library";
 import { Video } from "expo-av";
 import { Feather } from "@expo/vector-icons";
+import { BannerBottom } from "../components/Ads";
 
 export default function DownloadsScreen() {
   const [downloads, setDownloads] = useState([]);
@@ -82,7 +83,7 @@ export default function DownloadsScreen() {
           {item.filename}
         </Text>
         <Text style={styles.subInfo}>
-          {(item.fileSize / 1024 / 1024).toFixed(2)} MB
+          {item.fileSize ? `${(item.fileSize / 1024 / 1024).toFixed(2)} MB` : ""}
         </Text>
       </View>
 
@@ -109,6 +110,8 @@ export default function DownloadsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           showsVerticalScrollIndicator={false}
+          refreshing={false}
+          onRefresh={loadDownloads}
         />
       )}
 
@@ -136,6 +139,8 @@ export default function DownloadsScreen() {
           </View>
         </View>
       </Modal>
+
+      <BannerBottom />
     </View>
   );
 }

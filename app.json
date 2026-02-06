@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "tokmora",
+    "name": "Tokmora",
     "slug": "tokmora",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -24,10 +24,22 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ],
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.tokmora.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "81c6c60e-8365-4b87-b7b5-e5aa5e9821eb"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-2224154024283495~2362675460"
   }
 }

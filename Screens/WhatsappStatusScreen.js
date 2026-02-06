@@ -14,12 +14,14 @@ import {
 import * as MediaLibrary from "expo-media-library";
 import { Video } from "expo-av";
 import { Feather } from "@expo/vector-icons";
+import { BannerBottom, useInterstitial } from "../components/Ads";
 
 const { width } = Dimensions.get("window");
 
 export default function WhatsappStatusScreen() {
   const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const interstitial = useInterstitial();
 
   useEffect(() => {
     if (Platform.OS !== "android") {
@@ -41,17 +43,18 @@ export default function WhatsappStatusScreen() {
       }
 
       const assets = await MediaLibrary.getAssetsAsync({
-        first: 200,
+        first: 400,
         mediaType: ["photo", "video"],
         sortBy: [["creationTime", false]]
       });
 
-      // WhatsApp statuses live inside .Statuses folder
-      const filtered = assets.assets.filter(
-        a =>
-          a.uri.includes("WhatsApp") &&
-          a.uri.includes(".Statuses")
-      );
+      // Filter for both WhatsApp and WhatsApp Business .Statuses
+      const isWAStatus = (uri) =>
+        uri.includes("Android/media/com.whatsapp/WhatsApp/Media/.Statuses") ||
+        uri.includes("Android/media/com.whatsapp.w4b/WhatsApp Business/Media/.Statuses") ||
+        (uri.includes("WhatsApp") && uri.includes(".Statuses"));
+
+      const filtered = assets.assets.filter(a => isWAStatus(a.uri));
 
       setStatuses(filtered);
     } catch (e) {
@@ -65,8 +68,14 @@ export default function WhatsappStatusScreen() {
   const saveStatus = async (item) => {
     try {
       const asset = await MediaLibrary.createAssetAsync(item.uri);
-      await MediaLibrary.createAlbumAsync("Tokmora", asset, false);
+      let album = await MediaLibrary.getAlbumAsync("Tokmora");
+      if (!album) {
+        album = await MediaLibrary.createAlbumAsync("Tokmora", asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
       Alert.alert("Saved", "Status saved to Gallery");
+      interstitial.show();
     } catch (e) {
       Alert.alert("Error", "Unable to save status");
     }
@@ -121,6 +130,8 @@ export default function WhatsappStatusScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <BannerBottom />
     </View>
   );
 }

@@ -19,15 +19,18 @@ import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
 import axios from "axios";
+import { BannerBottom, useInterstitial } from "../components/Ads";
 
 /* ?? BACKEND */
-const API_URL = "http://192.168.43.124:5000/api/parse";
+const API_URL = "https://aigdata.ng/parse/";
 
 export default function HomeScreen({ navigation }) {
   const [link, setLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [videoData, setVideoData] = useState(null);
+
+  const interstitial = useInterstitial();
 
   /* ?? AUTO-PASTE */
   useEffect(() => {
@@ -83,11 +86,19 @@ export default function HomeScreen({ navigation }) {
       // Download actual video file
       const result = await FileSystem.downloadAsync(format.url, fileUri);
 
-      // Save to Gallery
+      // Save to Gallery (ensure album exists)
       const asset = await MediaLibrary.createAssetAsync(result.uri);
-      await MediaLibrary.createAlbumAsync("Tokmora", asset, false);
+      let album = await MediaLibrary.getAlbumAsync("Tokmora");
+      if (!album) {
+        album = await MediaLibrary.createAlbumAsync("Tokmora", asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
 
-      Alert.alert("Download complete", "Saved to Gallery ??");
+      Alert.alert("Download complete", "Saved to Gallery");
+
+      // Show interstitial after success
+      interstitial.show();
     } catch (e) {
       console.error(e);
       Alert.alert("Download failed");
@@ -117,7 +128,7 @@ export default function HomeScreen({ navigation }) {
       <LinearGradient colors={["#4f46e5", "#6366f1"]} style={styles.header}>
         <Text style={styles.headerTitle}>MediaSaver</Text>
         <Text style={styles.headerSub}>
-          Paste link • Choose quality • Download
+          Paste link ï¿½ Choose quality ï¿½ Download
         </Text>
       </LinearGradient>
 
@@ -180,14 +191,14 @@ export default function HomeScreen({ navigation }) {
               />
               <Text style={styles.videoTitle}>{videoData?.title}</Text>
 
-              {videoData?.formats.map((f, i) => (
+              {videoData?.formats?.map((f, i) => (
                 <TouchableOpacity
                   key={i}
                   style={styles.qualityBtn}
                   onPress={() => startDownload(f)}
                 >
-                  <Text style={styles.qualityText}>{f.quality}</Text>
-                  <Text style={styles.sizeText}>{f.size}</Text>
+                  <Text style={styles.qualityText}>{f.quality || "Video"}</Text>
+                  <Text style={styles.sizeText}>{f.size || ""}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -203,6 +214,8 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      <BannerBottom />
     </SafeAreaView>
   );
 }

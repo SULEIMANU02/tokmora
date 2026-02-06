@@ -1,0 +1,4 @@
+
+curl -X POST https://aigdata.ng/parse/ \
+  -H "Content-Type: application/json" \
+  -d '{"link":"https://www.instagram.com/reel/DSxIVbFEQfv/?igsh=a212NGN1Mmg4b2F1"}'
