@@ -24,7 +24,7 @@ import * as MediaLibrary from "expo-media-library";
 import axios from "axios";
 import { BannerBottom, useInterstitial } from "../components/Ads";
 
-const LOCAL_PARSE_BASE_URL = "http://192.168.0.4:8000";
+const LOCAL_PARSE_BASE_URL = "https://tokmora2.vercel.app";
 const WORKER_BASE_URL = (
   process.env.EXPO_PUBLIC_PARSE_API_BASE_URL || LOCAL_PARSE_BASE_URL
 ).replace(/\/+$/, "");
@@ -247,6 +247,14 @@ export default function HomeScreen({ navigation }) {
     setModalVisible(false);
 
     try {
+      if (format.videoOnly) {
+        Alert.alert(
+          "Video Only Format",
+          "This YouTube fallback format may download without audio.",
+          [{ text: "OK" }]
+        );
+      }
+
       if (format.isExternal) {
         Alert.alert(
           "External Download",
@@ -559,6 +567,11 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.platformText}>{videoData.platform}</Text>
                 </View>
               )}
+              {videoData?.warning ? (
+                <View style={styles.warningBadge}>
+                  <Text style={styles.warningText}>{videoData.warning}</Text>
+                </View>
+              ) : null}
               <View style={styles.formatsContainer}>
                 {videoData?.formats?.map((f, i) => (
                   <TouchableOpacity
@@ -580,7 +593,7 @@ export default function HomeScreen({ navigation }) {
                           {"Video"}
                         </Text>
                         <Text style={styles.sizeText}>
-                          {"Video Quality: " + (f.quality) }
+                          {"Video Quality: " + (f.quality) + (f.videoOnly ? " • no audio" : "")}
                         </Text>
                       </View>
                     </View>
@@ -912,6 +925,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#4f46e5"
+  },
+  warningBadge: {
+    backgroundColor: "#fff7ed",
+    borderColor: "#fdba74",
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  warningText: {
+    color: "#9a3412",
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 18
   },
   formatsContainer: {
     gap: 10

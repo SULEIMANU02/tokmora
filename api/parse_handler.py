@@ -174,32 +174,45 @@ def parse_link(link):
         raise UnsupportedPlatformError("The parser could not read this link.")
 
     formats = build_formats(info)
+    has_muxed_formats = any(not fmt.get("videoOnly") for fmt in formats)
 
     return {
         "success": True,
         "title": info.get("title") or "Video",
         "thumbnail": pick_thumbnail(info),
         "platform": detect_platform(link, info),
+        "warning": build_warning_message(info, has_muxed_formats),
         "formats": formats,
     }
 
 
 def build_formats(info):
-    candidates = []
+    muxed_candidates = []
+    fallback_candidates = []
     seen = set()
-    prefer_progressive = is_youtube_info(info)
+    is_youtube = is_youtube_info(info)
 
     for fmt in info.get("formats", []) or []:
-        normalized = normalize_format(fmt, prefer_progressive=prefer_progressive)
+        normalized = normalize_format(fmt, prefer_progressive=is_youtube)
         if not normalized:
             continue
 
-        key = (normalized["quality"], normalized["ext"], normalized["url"])
+        key = (
+            normalized["quality"],
+            normalized["ext"],
+            normalized["url"],
+            normalized.get("videoOnly", False),
+        )
         if key in seen:
             continue
 
         seen.add(key)
-        candidates.append(normalized)
+        if normalized.get("videoOnly"):
+            fallback_candidates.append(normalized)
+        else:
+            muxed_candidates.append(normalized)
+
+    candidates = muxed_candidates or fallback_candidates
 
     if not candidates:
         fallback_url = info.get("url")
@@ -214,6 +227,7 @@ def build_formats(info):
                         info.get("resolution"),
                     ),
                     "ext": ext,
+                    "videoOnly": False,
                 }
             )
 
@@ -242,8 +256,10 @@ def normalize_format(fmt, prefer_progressive=False):
     if vcodec == "none":
         return None
 
-    # Expo downloads are much more reliable when the stream already contains audio.
-    if acodec == "none":
+    video_only = acodec == "none"
+
+    # Prefer muxed streams, but allow a video-only fallback for hard YouTube cases.
+    if video_only and not prefer_progressive:
         return None
 
     ext = fmt.get("ext") or guess_extension(url) or "mp4"
@@ -253,6 +269,7 @@ def normalize_format(fmt, prefer_progressive=False):
         "url": url,
         "quality": quality,
         "ext": ext,
+        "videoOnly": video_only,
         "preference": format_preference(fmt, ext, prefer_progressive),
     }
 
@@ -321,11 +338,14 @@ def format_preference(fmt, ext, prefer_progressive):
     format_id = str(fmt.get("format_id") or "")
     note = str(fmt.get("format_note") or "").lower()
     is_progressive = protocol in ALLOWED_PROTOCOLS and fmt.get("acodec") not in (None, "none")
+    is_video_only = fmt.get("acodec") == "none"
 
     if ext == "mp4" and is_progressive and "dash" not in note and "dash" not in format_id:
         return 0
     if ext == "mp4":
         return 1
+    if is_video_only:
+        return 2
     return 2
 
 
@@ -391,3 +411,14 @@ def strip_internal_fields(payload):
         formats.append(fmt_copy)
     cleaned["formats"] = formats
     return cleaned
+
+
+def build_warning_message(info, has_muxed_formats):
+    if not is_youtube_info(info):
+        return None
+    if has_muxed_formats:
+        return None
+    return (
+        "This YouTube video only exposes video-only fallback streams here. "
+        "The downloaded file may have no audio."
+    )
