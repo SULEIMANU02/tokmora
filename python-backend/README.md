@@ -35,7 +35,8 @@ This replaces the old Heroku `POST /api/parse/` endpoint with a Python backend y
 ## Files
 
 - `api/index.py`: health endpoint for `/api`
-- `api/parse.py`: main parser endpoint for `/api/parse/`
+- `api/parse/index.py`: main parser endpoint for `/api/parse/`
+- `api/parse_handler.py`: shared parsing logic
 - `requirements.txt`: Python dependencies
 - `vercel.json`: Vercel function config
 

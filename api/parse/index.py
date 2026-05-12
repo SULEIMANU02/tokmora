@@ -1,5 +1,5 @@
+from http.server import BaseHTTPRequestHandler
 import json
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from api.parse_handler import (
     JSON_HEADERS,
@@ -12,41 +12,12 @@ from api.parse_handler import (
 )
 
 
-class LocalHandler(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self._send_json(204, None)
 
-    def do_GET(self):
-        if self.path in ("/api", "/api/"):
-            self._send_json(
-                200,
-                {
-                    "ok": True,
-                    "service": "tokmora-python-parse",
-                    "endpoints": ["GET /api", "POST /api/parse/"],
-                },
-            )
-            return
-
-        if self.path in ("/api/parse", "/api/parse/"):
-            self._send_json(
-                200,
-                {
-                    "ok": True,
-                    "service": "tokmora-python-parse",
-                    "endpoint": "POST /api/parse/",
-                },
-            )
-            return
-
-        self._send_json(404, {"message": "Not found"})
-
     def do_POST(self):
-        if self.path not in ("/api/parse", "/api/parse/"):
-            self._send_json(404, {"message": "Not found"})
-            return
-
-        body = self._read_json()
+        body = self._read_json_body()
         if body is None:
             return
 
@@ -91,10 +62,20 @@ class LocalHandler(BaseHTTPRequestHandler):
 
         self._send_json(200, payload)
 
+    def do_GET(self):
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "service": "tokmora-python-parse",
+                "endpoint": "POST /api/parse/",
+            },
+        )
+
     def log_message(self, format, *args):
         return
 
-    def _read_json(self):
+    def _read_json_body(self):
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -113,12 +94,6 @@ class LocalHandler(BaseHTTPRequestHandler):
         for key, value in JSON_HEADERS.items():
             self.send_header(key, value)
         self.end_headers()
+
         if payload is not None:
             self.wfile.write(json.dumps(strip_internal_fields(payload)).encode("utf-8"))
-
-
-if __name__ == "__main__":
-    server = ThreadingHTTPServer(("0.0.0.0", 8000), LocalHandler)
-    print("Local API running at http://0.0.0.0:8000")
-    print("LAN access: http://192.168.0.4:8000")
-    server.serve_forever()
