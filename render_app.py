@@ -64,7 +64,16 @@ def parse_route():
     try:
         payload = parse_link(link)
     except UnsupportedPlatformError as exc:
-        return jsonify({"message": str(exc), "formats": []}), 422
+        return (
+            jsonify(
+                {
+                    "message": str(exc),
+                    "details": getattr(exc, "details", None),
+                    "formats": [],
+                }
+            ),
+            422,
+        )
     except UpstreamTimeoutError as exc:
         return jsonify({"message": str(exc), "formats": []}), 504
     except UpstreamRateLimitError as exc:

@@ -131,7 +131,9 @@ class handler(BaseHTTPRequestHandler):
 
 
 class UnsupportedPlatformError(Exception):
-    pass
+    def __init__(self, message, details=None):
+        super().__init__(message)
+        self.details = details
 
 
 class UpstreamTimeoutError(Exception):
@@ -163,7 +165,8 @@ def parse_link(link):
         raise map_download_error(exc) from exc
     except ExtractorError as exc:
         raise UnsupportedPlatformError(
-            "This link could not be parsed by the current extractor."
+            "This link could not be parsed by the current extractor.",
+            details=str(exc),
         ) from exc
 
     entries = info.get("entries") if isinstance(info, dict) else None
@@ -350,7 +353,8 @@ def format_preference(fmt, ext, prefer_progressive):
 
 
 def map_download_error(error):
-    message = str(error).lower()
+    raw_message = str(error)
+    message = raw_message.lower()
 
     if "timed out" in message or "timeout" in message:
         return UpstreamTimeoutError(
@@ -362,15 +366,18 @@ def map_download_error(error):
         )
     if "unsupported url" in message or "unsupported" in message:
         return UnsupportedPlatformError(
-            "This link is not supported yet by the current parser."
+            "This link is not supported yet by the current parser.",
+            details=raw_message,
         )
     if "private video" in message or "login required" in message:
         return UnsupportedPlatformError(
-            "This video is private or requires login, so it cannot be fetched here."
+            "This video is private or requires login, so it cannot be fetched here.",
+            details=raw_message,
         )
 
     return UnsupportedPlatformError(
-        "The parser could not extract media details from this link."
+        "The parser could not extract media details from this link.",
+        details=raw_message,
     )
 
 

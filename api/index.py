@@ -62,7 +62,14 @@ class handler(BaseHTTPRequestHandler):
         try:
             payload = parse_link(link)
         except UnsupportedPlatformError as exc:
-            self._send_json(422, {"message": str(exc)})
+            self._send_json(
+                422,
+                {
+                    "message": str(exc),
+                    "details": getattr(exc, "details", None),
+                    "formats": [],
+                },
+            )
             return
         except UpstreamTimeoutError as exc:
             self._send_json(504, {"message": str(exc)})
